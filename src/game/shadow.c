@@ -696,6 +696,7 @@ Gfx *create_shadow_circle_4_verts(f32 xPos, f32 yPos, f32 zPos, s16 shadowScale,
  */
 Gfx *create_shadow_circle_assuming_flat_ground(f32 xPos, f32 yPos, f32 zPos, s16 shadowScale,
                                                u8 solidity) {
+    zPos++; // Fixes white background in start screen
     Vtx *verts;
     Gfx *displayList;
     struct FloorGeometry *dummy; // only for calling find_floor_height_and_data
