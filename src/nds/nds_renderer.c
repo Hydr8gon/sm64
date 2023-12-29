@@ -6,6 +6,8 @@
 
 #include "nds_renderer.h"
 
+#include "tonccpy.h"
+
 struct Color {
     uint8_t r, g, b, a;
 };
@@ -417,7 +419,7 @@ static void g_vtx(Gwords *words) {
     const Vtx *vertices = (const Vtx*)words->w1;
 
     // Store vertices in the vertex buffer
-    memcpy(&vertex_buffer[index - count], vertices, count * sizeof(Vtx));
+    tonccpy(&vertex_buffer[index - count], vertices, count * sizeof(Vtx));
 
     if (geometry_mode & G_LIGHTING) {
         // Recalculate transformed light vectors if the lights or modelview matrix changed
@@ -436,9 +438,9 @@ static void g_vtx(Gwords *words) {
                 int s = (lights[i].nx * lights[i].nx + lights[i].ny * lights[i].ny + lights[i].nz * lights[i].nz) >> 8;
                 if (s > 0) {
                     s = sqrt_fixed(s);
-                    lights[i].nx = (lights[i].nx << 16) / s;
-                    lights[i].ny = (lights[i].ny << 16) / s;
-                    lights[i].nz = (lights[i].nz << 16) / s;
+                    lights[i].nx = div32((lights[i].nx << 16), s);
+                    lights[i].ny = div32((lights[i].ny << 16), s);
+                    lights[i].nz = div32((lights[i].nz << 16), s);
                 }
             }
 
@@ -511,7 +513,7 @@ static void g_texture(Gwords *words) {
 static void g_popmtx(Gwords *words) {
     // Pop matrices from the modelview stack
     glMatrixMode(GL_MODELVIEW);
-    glPopMatrix(words->w1 / 64);
+    glPopMatrix(div32(words->w1, 64));
 }
 
 static void g_geometrymode(Gwords *words) {
@@ -600,7 +602,7 @@ static void g_moveword(Gwords *words) {
     switch (index) {
         case G_MW_NUMLIGHT:
             // Set the current number of lights, including the lookat vectors
-            num_lights = (words->w1 / 24) + 2;
+            num_lights = div32(words->w1, 24) + 2;
             break;
 
         case G_MW_FOG:
@@ -758,19 +760,19 @@ static void g_rdphalf_2(Gwords *words) {
 
     // Draw one half of the rectangle, using depth hijacking
     glTexCoord2t16(s1, t1);
-    glVertex3v16(x1, y1, (--z_depth) / 6);
+    glVertex3v16(x1, y1, div32((--z_depth), 6));
     glTexCoord2t16(s1, t2);
-    glVertex3v16(x1, y2, (--z_depth) / 6);
+    glVertex3v16(x1, y2, div32((--z_depth), 6));
     glTexCoord2t16(s2, t1);
-    glVertex3v16(x2, y1, (--z_depth) / 6);
+    glVertex3v16(x2, y1, div32((--z_depth), 6));
 
     // Draw the other half of the rectangle, using depth hijacking
     glTexCoord2t16(s2, t1);
-    glVertex3v16(x2, y1, (--z_depth) / 6);
+    glVertex3v16(x2, y1, div32((--z_depth), 6));
     glTexCoord2t16(s1, t2);
-    glVertex3v16(x1, y2, (--z_depth) / 6);
+    glVertex3v16(x1, y2, div32((--z_depth), 6));
     glTexCoord2t16(s2, t2);
-    glVertex3v16(x2, y2, (--z_depth) / 6);
+    glVertex3v16(x2, y2, div32((--z_depth), 6));
 
     // Restore the original matrices
     glPopMatrix(1);
@@ -849,14 +851,14 @@ static void g_fillrect(Gwords *words) {
     const int16_t y2 = -((((words->w0 >>  0) & 0xFFF) + (1 << 2)) * (2 << 12) / (240 << 2) - (1 << 12));
 
     // Draw one half of the rectangle, using depth hijacking
-    glVertex3v16(x1, y1, (--z_depth) / 6);
-    glVertex3v16(x1, y2, (--z_depth) / 6);
-    glVertex3v16(x2, y1, (--z_depth) / 6);
+    glVertex3v16(x1, y1, div32((--z_depth), 6));
+    glVertex3v16(x1, y2, div32((--z_depth), 6));
+    glVertex3v16(x2, y1, div32((--z_depth), 6));
 
     // Draw the other half of the rectangle, using depth hijacking
-    glVertex3v16(x2, y1, (--z_depth) / 6);
-    glVertex3v16(x1, y2, (--z_depth) / 6);
-    glVertex3v16(x2, y2, (--z_depth) / 6);
+    glVertex3v16(x2, y1, div32((--z_depth), 6));
+    glVertex3v16(x1, y2, div32((--z_depth), 6));
+    glVertex3v16(x2, y2, div32((--z_depth), 6));
 
     // Restore the original matrices
     glMatrixMode(GL_PROJECTION);

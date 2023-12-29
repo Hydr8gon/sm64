@@ -46,6 +46,8 @@ int main(void) {
     main_pool_init(pool, pool + sizeof(pool) / sizeof(pool[0]));
     gEffectsMemoryPool = mem_pool_init(0x4000, MEMORY_POOL_LEFT);
 
+    setCpuClock(true);
+
     renderer_init();
 
 #ifdef LIBFAT

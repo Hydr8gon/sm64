@@ -14,7 +14,7 @@ u64 osClockRate = 62500000;
 s32 osPiStartDma(UNUSED OSIoMesg *mb, UNUSED s32 priority, UNUSED s32 direction,
                  uintptr_t devAddr, void *vAddr, size_t nbytes,
                  UNUSED OSMesgQueue *mq) {
-    memcpy(vAddr, (const void *) devAddr, nbytes);
+    tonccpy(vAddr, (const void *) devAddr, nbytes);
     return 0;
 }
 
@@ -151,7 +151,7 @@ s32 osEepromLongRead(UNUSED OSMesgQueue *mq, u8 address, u8 *buffer, int nbytes)
         return -1;
     }
     if (fread(content, 1, 512, fp) == 512) {
-        memcpy(buffer, content + address * 8, nbytes);
+        tonccpy(buffer, content + address * 8, nbytes);
         ret = 0;
     }
     fclose(fp);
@@ -164,7 +164,7 @@ s32 osEepromLongWrite(UNUSED OSMesgQueue *mq, u8 address, u8 *buffer, int nbytes
     if (address != 0 || nbytes != 512) {
         osEepromLongRead(mq, 0, content, 512);
     }
-    memcpy(content + address * 8, buffer, nbytes);
+    tonccpy(content + address * 8, buffer, nbytes);
 
 #ifdef TARGET_WEB
     EM_ASM({

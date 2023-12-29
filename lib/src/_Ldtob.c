@@ -76,7 +76,11 @@ void _Ldtob(printf_struct *args, u8 type) {
     }
     err = _Ldunscale(&exp, args);
     if (err > 0) {
-        memcpy(args->buff, err == 2 ? "NaN" : "Inf", args->part2_len = 3);
+        #ifdef TARGET_NDS
+            tonccpy(args->buff, err == 2 ? "NaN" : "Inf", args->part2_len = 3);
+        #else
+            memcpy(args->buff, err == 2 ? "NaN" : "Inf", args->part2_len = 3);
+        #endif
         return;
     }
     if (err == 0) {
@@ -212,10 +216,18 @@ static void _Genld(printf_struct *px, u8 code, u8 *p, s16 nsig, s16 xexp) {
             if (px->precision < nsig) {
                 nsig = px->precision;
             }
-            memcpy(&px->buff[px->part2_len], p, px->part3_len = nsig);
+            #ifdef TARGET_NDS
+                tonccpy(&px->buff[px->part2_len], p, px->part3_len = nsig);
+            #else
+                memcpy(&px->buff[px->part2_len], p, px->part3_len = nsig);
+            #endif
             px->num_trailing_zeros = px->precision - nsig;
         } else if (nsig < xexp) { /* zeros before point */
-            memcpy(&px->buff[px->part2_len], p, nsig);
+            #ifdef TARGET_NDS
+                tonccpy(&px->buff[px->part2_len], p, nsig);
+            #else
+                memcpy(&px->buff[px->part2_len], p, nsig);
+            #endif
             px->part2_len += nsig;
             px->num_mid_zeros = xexp - nsig;
             if (0 < px->precision || px->flags & FLAGS_HASH) {
@@ -223,7 +235,11 @@ static void _Genld(printf_struct *px, u8 code, u8 *p, s16 nsig, s16 xexp) {
             }
             px->num_trailing_zeros = px->precision;
         } else { /* enough digits before point */
-            memcpy(&px->buff[px->part2_len], p, xexp);
+            #ifdef TARGET_NDS
+                tonccpy(&px->buff[px->part2_len], p, xexp);
+            #else
+                memcpy(&px->buff[px->part2_len], p, xexp);
+            #endif
             px->part2_len += xexp;
             nsig -= xexp;
             if (0 < px->precision || px->flags & FLAGS_HASH) {
@@ -232,7 +248,11 @@ static void _Genld(printf_struct *px, u8 code, u8 *p, s16 nsig, s16 xexp) {
             if (px->precision < nsig) {
                 nsig = px->precision;
             }
-            memcpy(&px->buff[px->part2_len], p + xexp, nsig);
+            #ifdef TARGET_NDS
+                tonccpy(&px->buff[px->part2_len], p + xexp, nsig);
+            #else
+                memcpy(&px->buff[px->part2_len], p + xexp, nsig);
+            #endif
             px->part2_len += nsig;
             px->num_mid_zeros = px->precision - nsig;
         }
@@ -254,7 +274,11 @@ static void _Genld(printf_struct *px, u8 code, u8 *p, s16 nsig, s16 xexp) {
             if (px->precision < --nsig) {
                 nsig = px->precision;
             }
-            memcpy(&px->buff[px->part2_len], p, nsig);
+            #ifdef TARGET_NDS
+                tonccpy(&px->buff[px->part2_len], p, nsig);
+            #else
+                memcpy(&px->buff[px->part2_len], p, nsig);
+            #endif
             px->part2_len += nsig;
             px->num_mid_zeros = px->precision - nsig;
         }

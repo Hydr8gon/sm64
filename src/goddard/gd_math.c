@@ -949,13 +949,21 @@ void UNUSED gd_rot_mat_offset(Mat4f *dst, f32 x, f32 y, f32 z, s32 copy) {
     }
 
     mag = gd_sqrt_f(SQ(adj) + SQ(opp));
+    #ifdef TARGET_NDS
+    c = swiDivide(adj, mag);
+    s = swiDivide(opp, mag);
+
+    vec.x = swiDivide(-y, opp);
+    vec.y = swiDivide(-x, opp);
+    vec.z = swiDivide(-z, opp);
+    #else
     c = adj / mag;
     s = opp / mag;
 
     vec.x = -y / opp;
     vec.y = -x / opp;
     vec.z = -z / opp;
-
+    #endif
     gd_create_rot_matrix(&rot, &vec, s, c);
     if (!copy) {
         gd_mult_mat4f(dst, &rot, dst);

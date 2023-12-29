@@ -44,7 +44,11 @@ void _Litob(printf_struct *args, u8 type) {
 
     args->part2_len = BUFF_LEN - buff_ind;
 
-    memcpy(args->buff, buff + buff_ind, args->part2_len);
+    #ifdef TARGET_NDS
+        tonccpy(args->buff, buff + buff_ind, args->part2_len);
+    #else
+        memcpy(args->buff, buff + buff_ind, args->part2_len);
+    #endif
 
     if (args->part2_len < args->precision) {
         args->num_leading_zeros = args->precision - args->part2_len;

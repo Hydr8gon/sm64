@@ -263,7 +263,7 @@ static void dma_read(u8 *dest, u8 *srcStart, u8 *srcEnd) {
         size -= copySize;
     }
 #else
-    memcpy(dest, srcStart, srcEnd - srcStart);
+    tonccpy(dest, srcStart, srcEnd - srcStart);
 #endif
 }
 
