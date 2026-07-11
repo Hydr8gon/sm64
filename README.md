@@ -33,8 +33,9 @@ have to build it yourself; the process should be straightforward, but some techn
 * Once the build is complete, open the `build/us_nds` folder to find `sm64.us.nds`
 
 ### Contributing
-Pull requests may be accepted, but reviewing them isn't a priority. Larger changes might be rewritten or implemented
-differently. If you have a change in mind, consider bringing it up on Discord or opening an issue for discussion.
+This project's goal is to be as close to the original as possible, while supporting builds for both DS(i) and N64. With
+that in mind, pull requests may be accepted, but they should generally be limited to things that don't alter gameplay.
+Feel free to use a fork of this project for customizations or even as the base for a ROM hack!
 
 ### Other Links
 * [Hydra's Lair](https://hydr8gon.github.io) - Blog where I may or may not write about things
