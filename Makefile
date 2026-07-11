@@ -70,12 +70,19 @@ else ifeq ($(VERSION),cn)
 endif
 
 ifeq ($(TARGET_NDS),1)
-  OPT_FLAGS := -O2 -flto -ffast-math
-  GRUCODE := f3dex2
-  COMPILER := gcc
-  DEVKITPRO ?= /opt/devkitpro
-  DEVKITARM ?= $(DEVKITPRO)/devkitARM
-  NDSTOOL ?= $(DEVKITPRO)/tools/bin/ndstool
+  OPT_FLAGS           := -O2 -flto=auto -ffast-math
+  GRUCODE             := f3dex2
+  COMPILER            := gcc
+  WONDERFUL_TOOLCHAIN ?= /opt/wonderful
+  ARM_NONE_EABI_PATH  ?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin
+  BLOCKSDS            ?= /opt/blocksds/core
+  BLOCKSDSEXT         ?= /opt/blocksds/external
+  NDSTOOL             ?= $(BLOCKSDS)/tools/ndstool/ndstool
+  GRIT                ?= $(BLOCKSDS)/tools/grit/grit
+  SOX                 ?= $(call find-command,wf-sox)
+  ifeq (, $(SOX))
+    SOX               := sox
+  endif
 endif
 
 TARGET := sm64.$(VERSION)
@@ -197,8 +204,6 @@ TOOLS_DIR := tools
 # in the makefile that we want should cover assets.)
 
 PYTHON := python3
-SOX := sox
-GRIT := $(DEVKITPRO)/tools/bin/grit
 
 ifeq ($(filter clean distclean print-%,$(MAKECMDGOALS)),)
 
@@ -371,13 +376,12 @@ IQUE_EGCS_PATH := $(TOOLS_DIR)/ique_egcs
 IQUE_LD_PATH := $(TOOLS_DIR)/ique_ld
 
 ifeq ($(TARGET_NDS),1)
-AS        := $(DEVKITARM)/bin/arm-none-eabi-as
-CC        := $(DEVKITARM)/bin/arm-none-eabi-gcc
-CPP       := $(DEVKITARM)/bin/arm-none-eabi-cpp -P
-CXX       := $(DEVKITARM)/bin/arm-none-eabi-g++
-LD        := $(CXX)
-OBJDUMP   := $(DEVKITARM)/bin/arm-none-eabi-objdump
-OBJCOPY   := $(DEVKITARM)/bin/arm-none-eabi-objcopy
+AS        := $(ARM_NONE_EABI_PATH)/arm-none-eabi-as
+CC        := $(ARM_NONE_EABI_PATH)/arm-none-eabi-gcc
+CPP       := $(ARM_NONE_EABI_PATH)/arm-none-eabi-cpp -P
+LD        := $(ARM_NONE_EABI_PATH)/arm-none-eabi-ld
+OBJDUMP   := $(ARM_NONE_EABI_PATH)/arm-none-eabi-objdump
+OBJCOPY   := $(ARM_NONE_EABI_PATH)/arm-none-eabi-objcopy
 else
 
 # detect prefix for MIPS toolchain
@@ -472,9 +476,9 @@ endif
 
 ifeq ($(TARGET_NDS),1)
 
-LIBDIRS := $(DEVKITPRO)/libnds
-TARGET_CFLAGS := -march=armv5te -mtune=arm946e-s -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=int-conversion $(foreach dir,$(LIBDIRS),-I$(dir)/include) -DTARGET_NDS -DARM9 -D_LANGUAGE_C -DNO_SEGMENTED_MEMORY #-DENABLE_FPS
-ARM7_TARGET_CFLAGS := -mcpu=arm7tdmi -mtune=arm7tdmi -Wno-error=implicit-function-declaration $(foreach dir,$(LIBDIRS),-I$(dir)/include) -DTARGET_NDS -DARM7 -D_LANGUAGE_C
+LIBDIRS := $(BLOCKSDS)/libs/libnds
+TARGET_CFLAGS := -mcpu=arm946e-s+nofp -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=int-conversion $(foreach dir,$(LIBDIRS),-I$(dir)/include) -DTARGET_NDS -DARM9 -D_LANGUAGE_C -DNO_SEGMENTED_MEMORY #-DENABLE_FPS
+ARM7_TARGET_CFLAGS := -mcpu=arm7tdmi -Wno-error=implicit-function-declaration $(foreach dir,$(LIBDIRS),-I$(dir)/include) -DTARGET_NDS -DARM7 -D_LANGUAGE_C
 
 CC_CHECK := $(CC)
 CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wextra -Wno-format-security -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS)
@@ -482,10 +486,10 @@ ARM7_CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(ARM7_TARGET_C
 
 ASFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
 CFLAGS := -fno-strict-aliasing -fwrapv $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS)
-LDFLAGS := -lfat -lnds9 -specs=dsi_arm9.specs -g -mthumb -mthumb-interwork $(foreach dir,$(LIBDIRS),-L$(dir)/lib) $(TARGET_CFLAGS)
+LDFLAGS := -Wl,--start-group -lnds9 -lc -Wl,--end-group -specs=$(BLOCKSDS)/sys/crts/dsi_arm9.specs -g $(foreach dir,$(LIBDIRS),-L$(dir)/lib) $(TARGET_CFLAGS)
 
 ARM7_CFLAGS := -fno-strict-aliasing -fwrapv $(OPT_FLAGS) $(ARM7_TARGET_CFLAGS) $(DEF_INC_CFLAGS)
-ARM7_LDFLAGS := -lnds7 -specs=ds_arm7.specs -g -mthumb-interwork $(foreach dir,$(LIBDIRS),-L$(dir)/lib) $(ARM7_TARGET_CFLAGS)
+ARM7_LDFLAGS := -Wl,--start-group -lc -lnds7 -Wl,--end-group -specs=$(BLOCKSDS)/sys/crts/ds_arm7.specs -g $(foreach dir,$(LIBDIRS),-L$(dir)/lib) $(ARM7_TARGET_CFLAGS)
 
 else
 
@@ -1026,11 +1030,11 @@ ifeq ($(TARGET_NDS),1)
 
 $(ARM7): $(ARM7_O_FILES)
 	@$(PRINT) "$(GREEN)Linking ARM7 binary:  $(BLUE)$@ $(NO_COL)\n"
-	$(V)$(LD) -L $(BUILD_DIR) -o $@ $(ARM7_O_FILES) $(ARM7_LDFLAGS)
+	$(V)$(CC) -L $(BUILD_DIR) -o $@ $(ARM7_O_FILES) $(ARM7_LDFLAGS)
 
 $(ARM9): $(GFX_O_FILES) $(O_FILES) $(MIO0_FILES:.mio0=.o) $(ULTRA_O_FILES) $(GODDARD_O_FILES)
 	@$(PRINT) "$(GREEN)Linking ARM9 binary:  $(BLUE)$@ $(NO_COL)\n"
-	$(V)$(LD) -L $(BUILD_DIR) -o $@ $(GFX_O_FILES) $(O_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES) $(LDFLAGS)
+	$(V)$(CC) -L $(BUILD_DIR) -o $@ $(GFX_O_FILES) $(O_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES) $(LDFLAGS)
 
 $(ROM): $(ARM7) $(ARM9)
 	@$(PRINT) "$(GREEN)Building ROM: $(BLUE)$@ $(NO_COL)\n"

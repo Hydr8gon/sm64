@@ -1,7 +1,11 @@
-FROM devkitpro/devkitarm:20240511 as build
+FROM skylyrac/blocksds:slim-latest as build
 
 RUN apt update
-RUN apt -y install build-essential bsdmainutils sox
+RUN apt -y install \
+	build-essential \
+	bsdmainutils \
+	python3 \
+	sox
 RUN mkdir /sm64
 WORKDIR /sm64
 

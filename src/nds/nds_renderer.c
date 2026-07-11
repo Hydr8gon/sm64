@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <PR/gbi.h>
+#include "macros.h"
 
 #include "nds_include.h"
 #include <nds/arm9/postest.h>
+#include "videoGL_private.h"
 
 #include "nds_renderer.h"
 #include "c_button.h"
@@ -102,11 +104,40 @@ struct {
 static uint8_t glTexCount;
 static void glTexSync();
 
+//extern u16* vramGetBank(u16 *addr);
+// blocksds libnds made this static. let's just copy it
+static uint16_t *vramGetBank(uint16_t *addr)
+{
+    const uint16_t *vram_i_end = VRAM_I + ((16 * 1024) / sizeof(u16));
+
+    if (addr >= VRAM_A && addr < VRAM_B)
+        return VRAM_A;
+    else if (addr >= VRAM_B && addr < VRAM_C)
+        return VRAM_B;
+    else if (addr >= VRAM_C && addr < VRAM_D)
+        return VRAM_C;
+    else if (addr >= VRAM_D && addr < VRAM_E)
+        return VRAM_D;
+    else if (addr >= VRAM_E && addr < VRAM_F)
+        return VRAM_E;
+    else if (addr >= VRAM_F && addr < VRAM_G)
+        return VRAM_F;
+    else if (addr >= VRAM_G && addr < VRAM_H)
+        return VRAM_G;
+    else if (addr >= VRAM_H && addr < VRAM_I)
+        return VRAM_H;
+    else if (addr >= VRAM_I && addr < vram_i_end)
+        return VRAM_I;
+
+    sassert(0, "Address not in VRAM");
+    return NULL;
+}
+
 // This is a modified (and simplified) version of glTexImage2D from libnds
 // The original updates texture VRAM right away, which causes tearing when done mid-frame
 // This adds textures to a queue, so VRAM will only be updated when glTexSync is called
-static int glTexImage2DAsync(int target, int empty1, GL_TEXTURE_TYPE_ENUM type, int sizeX, int sizeY, int empty2, int param, const void *texture) {
-    if (!glGlob->activeTexture)
+static int glTexImage2DAsync(int target, UNUSED int empty1, GL_TEXTURE_TYPE_ENUM type, int sizeX, int sizeY, UNUSED int empty2, int param, const void *texture) {
+    if (!glGlob.activeTexture)
         return 0;
 
     uint32_t size = 1 << (sizeX + sizeY + 6);
@@ -119,16 +150,16 @@ static int glTexImage2DAsync(int target, int empty1, GL_TEXTURE_TYPE_ENUM type, 
     else if (type != GL_RGB8_A5)
         return 0;
 
-    gl_texture_data *tex = (gl_texture_data*)DynamicArrayGet(&glGlob->texturePtrs, glGlob->activeTexture);
+    gl_texture_data *tex = (gl_texture_data*)DynamicArrayGet(&glGlob.texturePtrs, glGlob.activeTexture);
 
     // Clear out the texture data if one already exists for the active texture
     if (tex) {
         uint32_t texType = ((tex->texFormat >> 26) & 0x07);
         if ((tex->texSize != size) || (typeSizes[texType] != typeSizes[type])) {
             if(tex->texIndexExt)
-                vramBlock_deallocateBlock(glGlob->vramBlocks[0], tex->texIndexExt);
+                vramBlock_deallocateBlock(glGlob.vramBlocksTex, tex->texIndexExt);
             if(tex->texIndex)
-                vramBlock_deallocateBlock(glGlob->vramBlocks[0], tex->texIndex);
+                vramBlock_deallocateBlock(glGlob.vramBlocksTex, tex->texIndex);
             tex->texIndex = tex->texIndexExt = 0;
             tex->vramAddr = NULL;
         }
@@ -139,10 +170,10 @@ static int glTexImage2DAsync(int target, int empty1, GL_TEXTURE_TYPE_ENUM type, 
     // Allocate a new space for the texture in VRAM
     if (!tex->texIndex) {
         if (type != GL_NOTEXTURE) {
-            tex->texIndex = vramBlock_allocateBlock(glGlob->vramBlocks[0], tex->texSize, 3);
+            tex->texIndex = vramBlock_allocateBlock(glGlob.vramBlocksTex, tex->texSize, 3);
         }
         if (tex->texIndex) {
-            tex->vramAddr = vramBlock_getAddr(glGlob->vramBlocks[0], tex->texIndex);
+            tex->vramAddr = vramBlock_getAddr(glGlob.vramBlocksTex, tex->texIndex);
             tex->texFormat = (sizeX << 20) | (sizeY << 23) | (type << 26) | (((uint32_t)tex->vramAddr >> 3) & 0xFFFF);
         } else {
             tex->vramAddr = NULL;

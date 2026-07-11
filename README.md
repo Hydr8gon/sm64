@@ -20,7 +20,9 @@ have to build it yourself; the process should be straightforward, but some techn
 * Once the build is complete, open the `build/us_nds` folder to find `sm64.us.nds`
 
 **Linux:**
-* Install [devkitPro](https://devkitpro.org/wiki/Getting_Started) and its `nds-dev` package
+* Install the BlocksDS toolchain [using their instructions here](https://blocksds.skylyrac.net/docs/setup/options/linux/)
+  * You do not need the optional packages
+  * Creating the symlink for BlocksDS or setting the `BLOCKSDS` environment variable as described is required
 * Install tools according to your distro
   * Debian/Ubuntu: `sudo apt install -y build-essential git python sox`
   * Fedora: `sudo dnf install gcc make git python sox`
